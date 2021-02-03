@@ -29,11 +29,11 @@ func GetRoutes(mongoClient *Client) []rest.Route {
 		{Path: "/{database:[a-z,-]+}/_admin/filebackup", HandlerFc: FileBackup(mongoClient), Methods: "GET"},
 		{Path: "/{database:[a-z,-]+}/_admin/filerestore", HandlerFc: FileRestore(mongoClient), Methods: "POST"},
 		{Path: "/{database:[a-z,-]+}/_admin/history", HandlerFc: DeleteHistory(mongoClient), Methods: "DELETE"},
-		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}/{document:[a-z,0-9,-]+}", HandlerFc: getDocument(mongoClient), Methods: "GET"},
-		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}/{document:[a-z,0-9,-]+}", HandlerFc: putDocument(mongoClient), Methods: "POST,PUT"},
-		{Path: "/{database:[a-z,-]+}/{collection}/{document:[a-z,0-9,-]+}", HandlerFc: deleteDocument(mongoClient), Methods: "DELETE"},
-		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}", HandlerFc: putDocument(mongoClient), Methods: "POST,PUT"},
-		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}", HandlerFc: getDocument(mongoClient), Methods: "GET"},
+		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}/{document:[a-z,0-9,-]+}", HandlerFc: GetDocument(mongoClient), Methods: "GET"},
+		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}/{document:[a-z,0-9,-]+}", HandlerFc: PutDocument(mongoClient), Methods: "POST,PUT"},
+		{Path: "/{database:[a-z,-]+}/{collection}/{document:[a-z,0-9,-]+}", HandlerFc: DeleteDocument(mongoClient), Methods: "DELETE"},
+		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}", HandlerFc: PutDocument(mongoClient), Methods: "POST,PUT"},
+		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}", HandlerFc: GetDocument(mongoClient), Methods: "GET"},
 		{Path: "/{database:[a-z,-]+}", HandlerFc: getCollections(mongoClient), Methods: "GET"},
 		{Path: "/{database:[a-z,-]+}/{collection:[a-z,_]+}", HandlerFc: deleteCollection(mongoClient), Methods: "DELETE"},
 		{Path: "/{database:[a-z,-]+}", HandlerFc: deleteDatabase(mongoClient), Methods: "DELETE"},
@@ -128,7 +128,7 @@ func getDatabases(mongoClient *Client) http.HandlerFunc {
 	}
 }
 
-func getDocument(mongoClient *Client) http.HandlerFunc {
+func GetDocument(mongoClient *Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		database := vars["database"]
@@ -202,7 +202,7 @@ func getDocumentVersion(data []bson.M, version string) []bson.M {
 	return result
 }
 
-func putDocument(mongoClient *Client) http.HandlerFunc {
+func PutDocument(mongoClient *Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		database := vars["database"]
@@ -286,7 +286,7 @@ func putDocument(mongoClient *Client) http.HandlerFunc {
 	}
 }
 
-func deleteDocument(mongoClient *Client) http.HandlerFunc {
+func DeleteDocument(mongoClient *Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		database := vars["database"]
