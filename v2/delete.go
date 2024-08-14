@@ -1,8 +1,9 @@
-package mongo
+package v2
 
 import (
 	"context"
 	"errors"
+	mongo2 "github.com/z26100/mongo-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -24,7 +25,7 @@ func deleteOne(coll string, id primitive.ObjectID) (*mongo.DeleteResult, error) 
 	if c == nil {
 		return nil, errCollNil
 	}
-	if !history {
+	if !mongo2.history {
 		return c.DeleteOne(ctx, bson.M{"_id": id})
 	}
 	return MoveToHistory(coll, BsonType{"_id": id})

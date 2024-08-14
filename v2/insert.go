@@ -1,7 +1,8 @@
-package mongo
+package v2
 
 import (
 	"github.com/z26100/log-go"
+	"github.com/z26100/mongo-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -46,9 +47,9 @@ func InsertOrReplace(coll string, document BsonType, opts ...*options.InsertOneO
 	if !history {
 		o := &options.UpdateOptions{}
 		o.SetUpsert(true)
-		c.UpdateOne(ctx, asFilter(document), bson.M{"$set": document}, o)
+		c.UpdateOne(ctx, mongo.asFilter(document), bson.M{"$set": document}, o)
 	}
-	found := c.FindOne(ctx, asFilter(document))
+	found := c.FindOne(ctx, mongo.asFilter(document))
 	switch found.Err() {
 	case nil:
 		return WriteToHistory(coll, document)
