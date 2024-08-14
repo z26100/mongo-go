@@ -1,4 +1,4 @@
-module github.com/z26100/mongo-go
+module github.com/z26100/mongo-go/v2
 
 go 1.22.4
 
