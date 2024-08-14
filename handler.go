@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"errors"
-	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/tidwall/pretty"
@@ -10,6 +9,7 @@ import (
 	rest "github.com/z26100/rest-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"net/http"
 	"strconv"

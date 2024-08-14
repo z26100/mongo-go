@@ -2,10 +2,10 @@ package mongo
 
 import (
 	"errors"
-	"github.com/golang/protobuf/proto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/protobuf/proto"
 )
 
 func (b Client) GetCollection(database, collection string, databaseOptions *options.DatabaseOptions, collectionOptions *options.CollectionOptions) (*mongo.Collection, error) {
