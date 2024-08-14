@@ -3,7 +3,6 @@ package v2
 import (
 	"errors"
 	"github.com/z26100/log-go"
-	mongo2 "github.com/z26100/mongo-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -65,7 +64,7 @@ func EnsureFulltextIndexes(ignoreHistory bool, filter ...bson.M) error {
 			log.Error(err)
 			continue
 		}
-		if !mongo2.contains(indexes, "TextIndex") {
+		if !contains(indexes, "TextIndex") {
 			CreateFulltextIndex(coll)
 		}
 	}
