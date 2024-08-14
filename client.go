@@ -2,96 +2,58 @@ package mongo
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"errors"
+	"fmt"
+	"github.com/z26100/log-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"time"
 )
 
-type Document interface {
-	SetId(id primitive.ObjectID) Document
-	GetId() primitive.ObjectID
-}
+var (
+	Hostname = "localhost"
+	Port     = 27017
+	User     = ""
+	Password = ""
+	Database = ""
 
-const (
-	documentIDField = "_id"
+	ctx    = context.TODO()
+	client *mongo.Client
 )
 
-type Backend interface{}
-
-type Client struct {
-	client        *mongo.Client
-	config        *Config
-	databaseLimit []string
-}
-
-func NewMongoClient(conf *Config) (*Client, error) {
-	if conf == nil {
-		conf = DefaultMongoConfig()
-	}
-	var cred *options.Credential
-	if conf.MongoUser != "" {
-		cred = &options.Credential{Username: conf.MongoUser, Password: conf.MongoPassword}
-	}
-	client, err := getClient(conf.MongoUri, cred)
-	if err != nil {
-		return nil, err
-	}
-	err = client.Ping(Ctx(), nil)
-	if err != nil {
-		return nil, err
-	}
-	return &Client{
-		config:        conf,
-		client:        client,
-		databaseLimit: conf.databaseLimit,
-	}, nil
-}
-
-func (b Client) Client() *mongo.Client {
-	return b.client
-}
-
-func (b Client) Close() error {
-	return b.client.Disconnect(Ctx())
-}
-
-func getClient(uri string, credentials *options.Credential) (*mongo.Client, error) {
-	var client *mongo.Client
+func Connect() error {
+	uri := fmt.Sprintf("mongodb://%s:%s@%s:%d/%s?retryWrites=true&w=majority&ssl=false&authSource=admin", User, Password, Hostname, Port, Database)
 	var err error
-
-	if credentials != nil {
-		client, err = mongo.NewClient(options.Client().ApplyURI(uri).SetAuth(*credentials))
-	} else {
-		client, err = mongo.NewClient(options.Client().ApplyURI(uri))
-	}
+	client, err = mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
-		return nil, err
-	}
-	return client, connect(client)
-}
-
-func connect(client *mongo.Client) error {
-	return client.Connect(Ctx())
-}
-func (b Client) ping() error {
-	ctx, cancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer ctx.Done()
-	err := b.client.Ping(ctx, readpref.Primary())
-	if err != nil {
-		cancelFunc()
 		return err
 	}
-	cancelFunc = nil
-	return nil
+	err = Ping()
+	if err == nil {
+		log.Infof("Connected to host %s database %s.\n", Hostname, Database)
+	}
+	return err
 }
-func _getDatabases(client *mongo.Client) (mongo.ListDatabasesResult, error) {
-	result, err := client.ListDatabases(Ctx(), bson.M{})
-	return result, err
+func Client() *mongo.Client {
+	return client
 }
 
-func Ctx() context.Context {
-	return context.Background()
+func Ping() error {
+	if client == nil {
+		return errors.New("client must not be nil")
+	}
+	return client.Ping(ctx, nil)
+}
+
+func Close() error {
+	if client == nil {
+		return nil
+	}
+	return client.Disconnect(context.TODO())
+}
+
+func Coll(coll string) *mongo.Collection {
+	if client == nil {
+		return nil
+	}
+	return client.Database(Database).Collection(coll)
 }

@@ -1,65 +1,76 @@
 package mongo
 
 import (
-	"errors"
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/z26100/log-go"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"time"
 )
 
-func returnDocument(document options.ReturnDocument) *options.ReturnDocument {
-	return &document
-}
+func InsertOne(coll string, document BsonType, opts ...*options.InsertOneOptions) (BsonType, error) {
+	c := Coll(coll)
+	if c == nil {
+		return nil, errCollNil
+	}
+	document.SetCreated(time.Now())
 
-func (b Client) InsertOrReplace(database, collection string, filter bson.M, update interface{}) (bson.M, error) {
-	opts := &options.FindOneAndReplaceOptions{
-		Upsert:         aws.Bool(true),
-		ReturnDocument: returnDocument(options.After),
-	}
-	col, err := b.GetCollection(database, collection, b.config.databaseOptions, b.config.collectionOptions)
+	res, err := c.InsertOne(ctx, document, opts...)
 	if err != nil {
 		return nil, err
 	}
-	result := col.FindOneAndReplace(Ctx(), filter, update, opts)
-	if result.Err() != nil {
-		return nil, result.Err()
-	}
-	var resp bson.M
-	err = result.Decode(&resp)
-	return resp, err
-}
-
-func (b Client) InsertOne(database string, collection string, doc bson.M) (bson.M, error) {
-	col, err := b.GetCollection(database, collection, b.config.databaseOptions, b.config.collectionOptions)
-	if err != nil {
-		return nil, err
-	}
-	res, err := col.InsertOne(Ctx(), doc)
-	if err != nil {
-		return nil, err
-	}
-	if res == nil {
-		return nil, errors.New("result must not be nil")
-	}
-	id := res.InsertedID
-	doc, err = FindOne(col, bson.M{documentIDField: id})
-	return doc, err
-}
-
-func (b Client) ReplaceOne(database string, collection string, filter bson.M, replacement bson.A, opts ...*options.FindOneAndReplaceOptions) (bson.M, error) {
-	col, err := b.GetCollection(database, collection, b.config.databaseOptions, b.config.collectionOptions)
-	if err != nil {
-		return nil, err
-	}
-	result, err := FindOneAndReplace(col, filter, replacement, opts...)
+	var result BsonType
+	err = FindOne(coll, res.InsertedID, &result)
 	return result, err
 }
 
-func (b Client) UpdateOne(database string, collection string, filter bson.M, update bson.A, opts *options.FindOneAndUpdateOptions) (bson.M, error) {
-	col, err := b.GetCollection(database, collection, b.config.databaseOptions, b.config.collectionOptions)
-	if err != nil {
-		return nil, err
+const (
+	history = false
+)
+
+func InsertOrReplace(coll string, document BsonType, opts ...*options.InsertOneOptions) (BsonType, error) {
+
+	c := Coll(coll)
+	if c == nil {
+		return nil, errCollNil
 	}
-	result, err := FindOneAndUpdate(col, filter, update, opts)
-	return result, err
+	if document.GetCreated() == nil {
+		document.SetCreated(time.Now())
+	}
+
+	if document.GetId() == nil {
+		id := primitive.NewObjectID()
+		document.SetId(&id)
+	}
+	if !history {
+		o := &options.UpdateOptions{}
+		o.SetUpsert(true)
+		c.UpdateOne(ctx, asFilter(document), bson.M{"$set": document}, o)
+	}
+	found := c.FindOne(ctx, asFilter(document))
+	switch found.Err() {
+	case nil:
+		return WriteToHistory(coll, document)
+	default:
+		return InsertOne(coll, document, opts...)
+	}
+}
+
+func InsertMany(coll string, documents []BsonType, opts ...*options.InsertOneOptions) ([]any, error) {
+	c := Coll(coll)
+	if c == nil {
+		return nil, errCollNil
+	}
+	var results []interface{}
+	for _, doc := range documents {
+		var err error
+		res, err := InsertOrReplace(coll, doc, opts...)
+		if err == nil {
+			results = append(results, res)
+		} else {
+			log.Error(err)
+		}
+	}
+	return results, nil
 }

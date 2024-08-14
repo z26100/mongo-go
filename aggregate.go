@@ -3,14 +3,20 @@ package mongo
 import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 )
 
-func (b Client) Query(database string, collection string, pipeline interface{}, opts *options.AggregateOptions) (*mongo.Cursor, error) {
-	log.Printf("Querying %s, %s", database, collection)
-	col, err := b.GetCollection(database, collection, nil, nil)
-	if err != nil {
-		return nil, err
+func AggregateCursor(coll string, pipeline interface{}, opts ...*options.AggregateOptions) (*mongo.Cursor, error) {
+	c := Coll(coll)
+	if c == nil {
+		return nil, errCollNil
 	}
-	return col.Aggregate(Ctx(), pipeline, opts)
+	return c.Aggregate(ctx, pipeline, opts...)
+}
+
+func AggregateAll(coll string, pipeline interface{}, result interface{}, opts ...*options.AggregateOptions) error {
+	cur, err := AggregateCursor(coll, pipeline, opts...)
+	if err != nil {
+		return err
+	}
+	return cur.All(ctx, result)
 }
